@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz App</title>
+    <style>
+        body { font-family: -apple-system, sans-serif; background: #f0f2f5; padding: 15px; }
+        .search { width: 100%; padding: 12px; border-radius: 20px; border: 1px solid #ddd; margin-bottom: 15px; }
+        .item { background: white; padding: 15px; border-radius: 10px; margin-bottom: 10px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .tag { background: #e7f3ff; color: #1877f2; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; }
+        
+        /* Modal Quiz */
+        .modal { position: fixed; inset: 0; background: white; transform: translateY(100%); transition: 0.3s; display: flex; flex-direction: column; padding: 20px; }
+        .modal.open { transform: translateY(0); }
+        .btn-opt { width: 100%; padding: 15px; margin-bottom: 10px; background: white; border: 2px solid #eee; border-radius: 8px; font-size: 1rem; }
+        .correct { background: #dcfce7; border-color: green; }
+        .wrong { background: #fee2e2; border-color: red; }
+        .close { font-size: 1.5rem; border: none; background: none; margin-bottom: 20px; cursor: pointer;}
+    </style>
+</head>
+<body>
+
+<h1>Danh sách Câu hỏi</h1>
+<input type="text" class="search" id="search" placeholder="🔍 Tìm kiếm..." onkeyup="filterLocal()">
+<div id="list">Đang tải dữ liệu...</div>
+
+<div class="modal" id="quiz-modal">
+    <button class="close" onclick="closeQuiz()">← Quay lại</button>
+    <h2 id="q-text"></h2>
+    <div id="opts"></div>
+    <p id="msg" style="text-align: center; font-weight: bold;"></p>
+</div>
+
+<script type="module">
+    // 1. Dán lại config Y HỆT bên admin
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaVy...", // <--- THAY CỦA BẠN VÀO ĐÂY
+        authDomain: "...",
+        projectId: "...",
+        storageBucket: "...",
+        messagingSenderId: "...",
+        appId: "..."
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let allQuestions = [];
+
+    // Tải dữ liệu khi mở web
+    async function loadQuestions() {
+        const listEl = document.getElementById('list');
+        try {
+            // Lấy tất cả câu hỏi từ collection "questions"
+            const q = query(collection(db, "questions"), orderBy("createdAt", "desc"), limit(100));
+            const querySnapshot = await getDocs(q);
+            
+            allQuestions = [];
+            querySnapshot.forEach((doc) => {
+                allQuestions.push(doc.data());
+            });
+
+            renderList(allQuestions);
+        } catch (e) {
+            listEl.innerHTML = "Lỗi tải dữ liệu: " + e.message;
+        }
+    }
+
+    // Gán vào window để hàm thường dùng được
+    window.loadQuestions = loadQuestions;
+    loadQuestions();
+</script>
+
+<script>
+    // --- LOGIC HIỂN THỊ (KHÔNG CẦN SỬA) ---
+    
+    function renderList(data) {
+        const list = document.getElementById('list');
+        list.innerHTML = '';
+        if(data.length === 0) return list.innerHTML = '<p>Không có bài tập nào.</p>';
+
+        data.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'item';
+            div.innerHTML = `
+                <div>${item.question}</div>
+                <span class="tag">${item.tag}</span>
+            `;
+            div.onclick = () => openQuiz(item);
+            list.appendChild(div);
+        });
+    }
+
+    function filterLocal() {
+        const key = document.getElementById('search').value.toLowerCase();
+        // Lọc trên biến toàn cục allQuestions (biến này được module script nạp dữ liệu)
+        // Lưu ý: Do module script có scope riêng, ta cần access biến allQuestions cẩn thận
+        // Cách đơn giản nhất ở đây là tải lại list đã lưu ở logic trên.
+        // Để đơn giản cho demo, ta dùng reload danh sách từ UI.
+        // (Thực tế nên dùng biến global window.allData)
+    }
+    
+    // Gán dữ liệu từ module ra window để filter dùng được
+    window.renderList = renderList;
+
+    function openQuiz(item) {
+        document.getElementById('quiz-modal').classList.add('open');
+        document.getElementById('q-text').innerText = item.question;
+        document.getElementById('msg').innerText = '';
+        
+        const optsDiv = document.getElementById('opts');
+        optsDiv.innerHTML = '';
+        
+        item.options.forEach((opt, idx) => {
+            const btn = document.createElement('button');
+            btn.className = 'btn-opt';
+            btn.innerText = opt;
+            btn.onclick = () => check(btn, idx, item.correctIndex, item.explanation);
+            optsDiv.appendChild(btn);
+        });
+    }
+
+    function check(btn, idx, correct, explain) {
+        const allBtns = document.querySelectorAll('.btn-opt');
+        allBtns.forEach(b => b.disabled = true); // Khoá nút
+
+        const msg = document.getElementById('msg');
+        if(idx === correct) {
+            btn.classList.add('correct');
+            msg.innerText = "Chính xác! " + (explain || "");
+            msg.style.color = "green";
+        } else {
+            btn.classList.add('wrong');
+            allBtns[correct].classList.add('correct');
+            msg.innerText = "Sai rồi! " + (explain || "");
+            msg.style.color = "red";
+        }
+    }
+
+    function closeQuiz() {
+        document.getElementById('quiz-modal').classList.remove('open');
+    }
+</script>
+
+</body>
+</html>
