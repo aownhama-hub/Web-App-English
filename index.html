@@ -2,63 +2,108 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quiz App</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>English Quiz App V2</title>
     <style>
-        body { font-family: -apple-system, sans-serif; background: #f0f2f5; padding: 15px; margin: 0; }
-        h1 { text-align: center; color: #1e293b; font-size: 1.5rem; }
+        :root { --primary: #2563eb; --bg: #f8fafc; --card: #ffffff; --text: #1e293b; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+        /* HEADER & SEARCH */
+        .app-header { background: white; padding: 15px 20px; position: sticky; top: 0; z-index: 50; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .app-header h1 { margin: 0; font-size: 1.3rem; color: var(--primary); text-align: center; }
         
-        .search { width: 100%; padding: 12px; border-radius: 20px; border: 1px solid #ddd; margin-bottom: 15px; box-sizing: border-box; outline: none; }
-        .search:focus { border-color: #2563eb; }
+        .search-container { padding: 15px; max-width: 600px; margin: 0 auto; }
+        .search-bar { width: 100%; padding: 12px 20px; border: none; border-radius: 30px; background: #e2e8f0; font-size: 1rem; outline: none; transition: 0.2s; box-sizing: border-box; }
+        .search-bar:focus { background: white; box-shadow: 0 0 0 2px var(--primary); }
+
+        /* LIST VIEW */
+        .quiz-list { max-width: 600px; margin: 0 auto; padding: 0 15px 20px; }
+        .quiz-card { background: white; padding: 15px; border-radius: 12px; margin-bottom: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); display: flex; flex-direction: column; cursor: pointer; transition: transform 0.1s; border-left: 5px solid transparent; }
+        .quiz-card:active { transform: scale(0.98); background: #f1f5f9; }
         
-        .item { background: white; padding: 15px; border-radius: 10px; margin-bottom: 10px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.1); transition: 0.1s; }
-        .item:active { transform: scale(0.98); background: #f8fafc; }
+        .type-multi { border-left-color: #3b82f6; }
+        .type-listening { border-left-color: #8b5cf6; }
+        .type-image { border-left-color: #ec4899; }
+        .type-matching { border-left-color: #f59e0b; }
+
+        .quiz-title { font-weight: 600; font-size: 1rem; margin-bottom: 8px; line-height: 1.4; }
+        .tag-row { display: flex; flex-wrap: wrap; gap: 5px; }
+        .tag { font-size: 0.75rem; padding: 3px 8px; border-radius: 6px; background: #eff6ff; color: var(--primary); font-weight: 600; }
+        .type-badge { font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; color: white; margin-right: 5px; vertical-align: middle; text-transform: uppercase; }
+
+        /* MODAL QUIZ */
+        .quiz-modal { position: fixed; inset: 0; background: white; z-index: 100; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; }
+        .quiz-modal.open { transform: translateY(0); }
         
-        .tag { background: #e0f2fe; color: #0284c7; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; margin-top: 5px; display: inline-block; }
-        .q-text { font-weight: 500; color: #334155; }
+        .modal-header { padding: 15px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between; }
+        .btn-close { font-size: 1.2rem; background: none; border: none; color: #64748b; cursor: pointer; padding: 5px 10px; }
         
-        /* Modal Quiz */
-        .modal { position: fixed; inset: 0; background: white; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; padding: 20px; z-index: 100; }
-        .modal.open { transform: translateY(0); }
+        .modal-body { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; align-items: center; }
         
-        .modal-header { display: flex; align-items: center; margin-bottom: 20px; }
-        .close { font-size: 1.2rem; border: none; background: none; cursor: pointer; padding: 0; margin-right: 15px; color: #64748b; }
-        
-        .q-content { flex: 1; overflow-y: auto; display: flex; flex-direction: column; justify-content: center; }
-        .big-question { font-size: 1.2rem; font-weight: bold; text-align: center; margin-bottom: 30px; color: #0f172a; }
-        
-        .btn-opt { width: 100%; padding: 16px; margin-bottom: 12px; background: white; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 1rem; cursor: pointer; text-align: left; transition: 0.2s; }
-        .correct { background: #dcfce7 !important; border-color: #22c55e !important; color: #15803d; }
-        .wrong { background: #fee2e2 !important; border-color: #ef4444 !important; color: #b91c1c; }
-        
-        .feedback { text-align: center; font-weight: bold; padding: 15px; border-radius: 8px; margin-top: 10px; display: none; }
+        /* CONTENT STYLES */
+        .media-container { width: 100%; max-width: 500px; margin-bottom: 20px; text-align: center; }
+        .media-container img { max-width: 100%; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .media-container audio { width: 100%; }
+
+        .question-text { font-size: 1.2rem; font-weight: 700; text-align: center; margin-bottom: 25px; color: #0f172a; width: 100%; }
+
+        /* OPTIONS (MULTIPLE CHOICE) */
+        .options-grid { width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 10px; }
+        .option-btn { width: 100%; padding: 16px; border: 2px solid #e2e8f0; border-radius: 12px; background: white; font-size: 1rem; font-weight: 500; cursor: pointer; transition: 0.2s; text-align: left; }
+        .option-btn.correct { background: #dcfce7; border-color: #22c55e; color: #15803d; }
+        .option-btn.wrong { background: #fee2e2; border-color: #ef4444; color: #b91c1c; }
+
+        /* MATCHING GAME */
+        .match-container { display: flex; justify-content: space-between; width: 100%; gap: 15px; }
+        .match-col { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+        .match-item { padding: 15px 10px; background: #f8fafc; border: 2px solid #cbd5e1; border-radius: 8px; text-align: center; font-size: 0.9rem; cursor: pointer; transition: 0.2s; min-height: 40px; display: flex; align-items: center; justify-content: center; }
+        .match-item.selected { border-color: #3b82f6; background: #eff6ff; transform: scale(1.02); }
+        .match-item.matched { border-color: #22c55e; background: #dcfce7; color: #15803d; opacity: 0.6; pointer-events: none; }
+        .match-item.error { animation: shake 0.4s; border-color: #ef4444; background: #fee2e2; }
+
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+
+        /* FEEDBACK */
+        .feedback-box { margin-top: 20px; padding: 15px; border-radius: 12px; text-align: center; font-weight: 600; width: 100%; max-width: 500px; display: none; box-sizing: border-box;}
+        .fb-correct { background: #dcfce7; color: #166534; }
+        .fb-wrong { background: #fee2e2; color: #991b1b; }
+
     </style>
 </head>
 <body>
 
-<h1>📚 Danh sách Bài tập</h1>
-<input type="text" class="search" id="search" placeholder="🔍 Tìm kiếm (Tag, nội dung)..." onkeyup="filterLocal()">
-<div id="list">Đang tải dữ liệu...</div>
+<div class="app-header">
+    <h1>🇬🇧 English Zone</h1>
+</div>
 
-<div class="modal" id="quiz-modal">
-    <div class="modal-header">
-        <button class="close" onclick="closeQuiz()">✕ Đóng</button>
-        <b style="font-size: 1.1rem;">Làm bài tập</b>
-    </div>
-    
-    <div class="q-content">
-        <div id="q-text" class="big-question"></div>
-        <div id="opts"></div>
-        <div id="feedback" class="feedback"></div>
+<div class="search-container">
+    <input type="text" class="search-bar" id="search" placeholder="🔍 Tìm kiếm (Chủ đề, dạng bài)..." onkeyup="filterList()">
+</div>
+
+<div class="quiz-list" id="list-area">
+    <div style="text-align: center; color: #94a3b8; margin-top: 50px;">
+        <div style="font-size: 2rem; margin-bottom: 10px;">⏳</div>
+        Đang tải dữ liệu...
     </div>
 </div>
 
-<script type="module">
-    // Import đúng phiên bản v12.8.0 như admin
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
-    import { getFirestore, collection, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+<!-- QUIZ MODAL -->
+<div class="quiz-modal" id="quiz-screen">
+    <div class="modal-header">
+        <span style="font-weight: bold; color: #475569;">Làm bài tập</span>
+        <button class="btn-close" onclick="closeQuiz()">✕ Đóng</button>
+    </div>
+    <div class="modal-body" id="quiz-content">
+        <!-- Nội dung sẽ được render động tại đây -->
+    </div>
+</div>
 
-    // Cấu hình Firebase của bạn
+<!-- FIREBASE SDK V12.8.0 -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+    import { getFirestore, collection, onSnapshot, orderBy, query } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+
+    // CẤU HÌNH CỦA BẠN
     const firebaseConfig = {
         apiKey: "AIzaSyDnQI6YmFYn10BYO1N_QckXfa9qodZaVK8",
         authDomain: "english-quiz-app-cca0c.firebaseapp.com",
@@ -72,104 +117,236 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     
-    // Biến toàn cục lưu dữ liệu để lọc
-    window.allQuestions = [];
+    // BIẾN TOÀN CỤC LƯU DỮ LIỆU
+    window.allQuizzes = [];
 
-    async function loadQuestions() {
-        const listEl = document.getElementById('list');
-        try {
-            // Tải tối đa 100 câu hỏi mới nhất
-            const q = query(collection(db, "questions"), orderBy("createdAt", "desc"), limit(100));
-            const querySnapshot = await getDocs(q);
-            
-            window.allQuestions = [];
-            querySnapshot.forEach((doc) => {
-                window.allQuestions.push(doc.data());
-            });
+    // LẮNG NGHE DỮ LIỆU REALTIME
+    const q = query(collection(db, "questions"), orderBy("createdAt", "desc"));
+    onSnapshot(q, (snapshot) => {
+        window.allQuizzes = [];
+        snapshot.forEach((doc) => {
+            window.allQuizzes.push({ id: doc.id, ...doc.data() });
+        });
+        renderList(window.allQuizzes);
+    }, (error) => {
+        document.getElementById('list-area').innerHTML = `<p style="text-align:center; color:red">Lỗi tải: ${error.message}</p>`;
+    });
 
-            renderList(window.allQuestions);
-        } catch (e) {
-            listEl.innerHTML = `<p style="text-align:center; color:red">Lỗi kết nối: ${e.message}</p>`;
-        }
-    }
-
-    // Chạy ngay khi tải trang
-    loadQuestions();
 </script>
 
 <script>
-    // --- LOGIC GIAO DIỆN ---
+    // --- UI LOGIC ---
 
+    function getTypeMeta(type) {
+        switch(type) {
+            case 'listening': return { label: 'Listening', color: '#8b5cf6', class: 'type-listening' };
+            case 'image': return { label: 'Image', color: '#ec4899', class: 'type-image' };
+            case 'matching': return { label: 'Matching', color: '#f59e0b', class: 'type-matching' };
+            default: return { label: 'Quiz', color: '#3b82f6', class: 'type-multi' };
+        }
+    }
+
+    // 1. RENDER LIST
     function renderList(data) {
-        const list = document.getElementById('list');
-        list.innerHTML = '';
-        if(data.length === 0) return list.innerHTML = '<p style="text-align:center; color:#666">Không có bài tập nào.</p>';
+        const listArea = document.getElementById('list-area');
+        listArea.innerHTML = '';
+
+        if(data.length === 0) {
+            listArea.innerHTML = '<p style="text-align:center; color:#94a3b8">Không tìm thấy bài tập.</p>';
+            return;
+        }
 
         data.forEach(item => {
+            const meta = getTypeMeta(item.type);
+            const tagsHtml = (item.tags || []).map(t => `<span class="tag">${t}</span>`).join('');
+            
             const div = document.createElement('div');
-            div.className = 'item';
+            div.className = `quiz-card ${meta.class}`;
             div.innerHTML = `
-                <div class="q-text">${item.question}</div>
-                <span class="tag">${item.tag || 'General'}</span>
+                <div class="quiz-title">
+                    <span class="type-badge" style="background:${meta.color}">${meta.label}</span>
+                    ${item.question}
+                </div>
+                <div class="tag-row">${tagsHtml}</div>
             `;
             div.onclick = () => openQuiz(item);
-            list.appendChild(div);
+            listArea.appendChild(div);
         });
     }
 
-    function filterLocal() {
+    // 2. FILTER
+    window.filterList = function() {
         const key = document.getElementById('search').value.toLowerCase();
-        // Lọc dữ liệu từ biến window.allQuestions đã được module tải về
-        const filtered = window.allQuestions.filter(item => 
-            item.question.toLowerCase().includes(key) || 
-            (item.tag && item.tag.toLowerCase().includes(key))
-        );
+        const filtered = window.allQuizzes.filter(item => {
+            const inTitle = item.question.toLowerCase().includes(key);
+            const inTags = (item.tags || []).some(t => t.toLowerCase().includes(key));
+            const inType = item.type.toLowerCase().includes(key);
+            return inTitle || inTags || inType;
+        });
         renderList(filtered);
     }
 
-    function openQuiz(item) {
-        document.getElementById('quiz-modal').classList.add('open');
-        document.getElementById('q-text').innerText = item.question;
-        
-        const fb = document.getElementById('feedback');
-        fb.style.display = 'none';
-        fb.className = 'feedback'; // reset class
-        
-        const optsDiv = document.getElementById('opts');
-        optsDiv.innerHTML = '';
-        
-        item.options.forEach((opt, idx) => {
-            const btn = document.createElement('button');
-            btn.className = 'btn-opt';
-            btn.innerText = opt;
-            btn.onclick = () => check(btn, idx, item.correctIndex, item.explanation);
-            optsDiv.appendChild(btn);
-        });
+    // 3. OPEN QUIZ (SMART RENDERER)
+    function openQuiz(data) {
+        document.getElementById('quiz-screen').classList.add('open');
+        const content = document.getElementById('quiz-content');
+        content.innerHTML = '';
+
+        // A. Render Media (Audio/Image)
+        if(data.media) {
+            const mediaDiv = document.createElement('div');
+            mediaDiv.className = 'media-container';
+            if(data.type === 'listening') {
+                mediaDiv.innerHTML = `<audio controls src="${data.media}"></audio>`;
+            } else {
+                mediaDiv.innerHTML = `<img src="${data.media}" alt="Quiz Image">`;
+            }
+            content.appendChild(mediaDiv);
+        }
+
+        // B. Render Question Text
+        const qText = document.createElement('div');
+        qText.className = 'question-text';
+        qText.innerText = data.question;
+        content.appendChild(qText);
+
+        // C. Render Interface based on Type
+        if(data.type === 'matching') {
+            renderMatchingGame(data, content);
+        } else {
+            renderMultipleChoice(data, content);
+        }
     }
 
-    function check(btn, idx, correct, explain) {
-        const allBtns = document.querySelectorAll('.btn-opt');
-        allBtns.forEach(b => b.disabled = true); // Khoá nút
+    // --- GAME LOGIC: TRẮC NGHIỆM ---
+    function renderMultipleChoice(data, container) {
+        const grid = document.createElement('div');
+        grid.className = 'options-grid';
+        
+        data.options.forEach((opt, idx) => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = opt;
+            btn.onclick = () => checkMulti(btn, idx, data);
+            grid.appendChild(btn);
+        });
+        
+        container.appendChild(grid);
+        
+        // Feedback div
+        const fb = document.createElement('div');
+        fb.id = 'feedback';
+        fb.className = 'feedback-box';
+        container.appendChild(fb);
+    }
+
+    function checkMulti(btn, idx, data) {
+        // Disable all
+        const allBtns = document.querySelectorAll('.option-btn');
+        allBtns.forEach(b => b.onclick = null);
 
         const fb = document.getElementById('feedback');
-        if(idx === correct) {
+        fb.style.display = 'block';
+
+        if(idx === data.correctIndex) {
             btn.classList.add('correct');
-            fb.innerHTML = "🎉 Chính xác! <br>" + (explain || "");
-            fb.style.background = "#dcfce7";
-            fb.style.color = "#15803d";
+            fb.className = 'feedback-box fb-correct';
+            fb.innerHTML = `🎉 Chính xác!<br>${data.explanation || ''}`;
         } else {
             btn.classList.add('wrong');
-            allBtns[correct].classList.add('correct'); // Hiện đáp án đúng
-            fb.innerHTML = "❌ Sai rồi! <br>" + (explain || "");
-            fb.style.background = "#fee2e2";
-            fb.style.color = "#b91c1c";
+            allBtns[data.correctIndex].classList.add('correct');
+            fb.className = 'feedback-box fb-wrong';
+            fb.innerHTML = `❌ Sai rồi!<br>${data.explanation || ''}`;
         }
-        fb.style.display = 'block';
+    }
+
+    // --- GAME LOGIC: NỐI TỪ (MATCHING) ---
+    function renderMatchingGame(data, container) {
+        // Prepare data
+        const pairs = data.matchPairs;
+        const leftItems = pairs.map((p, i) => ({ id: i, text: p.left }));
+        // Shuffle right column
+        const rightItems = pairs.map((p, i) => ({ id: i, text: p.right }))
+                                .sort(() => Math.random() - 0.5);
+
+        const area = document.createElement('div');
+        area.className = 'match-container';
+        
+        // Render columns
+        const leftCol = document.createElement('div'); leftCol.className = 'match-col';
+        const rightCol = document.createElement('div'); rightCol.className = 'match-col';
+
+        leftItems.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'match-item left-item';
+            div.innerText = item.text;
+            div.dataset.id = item.id;
+            div.onclick = () => selectLeft(div);
+            leftCol.appendChild(div);
+        });
+
+        rightItems.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'match-item right-item';
+            div.innerText = item.text;
+            div.dataset.id = item.id; // ID này khớp với ID bên trái nếu đúng cặp
+            div.onclick = () => selectRight(div);
+            rightCol.appendChild(div);
+        });
+
+        area.appendChild(leftCol);
+        area.appendChild(rightCol);
+        container.appendChild(area);
+
+        // State tracking
+        let selectedLeft = null;
+        let matchedCount = 0;
+
+        function selectLeft(el) {
+            if(el.classList.contains('matched')) return;
+            // Deselect old
+            document.querySelectorAll('.left-item').forEach(e => e.classList.remove('selected'));
+            el.classList.add('selected');
+            selectedLeft = el;
+        }
+
+        function selectRight(el) {
+            if(!selectedLeft || el.classList.contains('matched')) return;
+            
+            const leftId = selectedLeft.dataset.id;
+            const rightId = el.dataset.id;
+
+            if(leftId === rightId) {
+                // Correct
+                selectedLeft.classList.add('matched');
+                selectedLeft.classList.remove('selected');
+                el.classList.add('matched');
+                selectedLeft = null;
+                matchedCount++;
+
+                if(matchedCount === pairs.length) {
+                    showWin();
+                }
+            } else {
+                // Wrong
+                el.classList.add('error');
+                setTimeout(() => el.classList.remove('error'), 400);
+            }
+        }
+
+        function showWin() {
+            const fb = document.createElement('div');
+            fb.className = 'feedback-box fb-correct';
+            fb.style.display = 'block';
+            fb.innerHTML = `🎉 Tuyệt vời! Bạn đã nối đúng tất cả.<br>${data.explanation || ''}`;
+            container.appendChild(fb);
+        }
     }
 
     function closeQuiz() {
-        document.getElementById('quiz-modal').classList.remove('open');
+        document.getElementById('quiz-screen').classList.remove('open');
     }
+
 </script>
 
 </body>
