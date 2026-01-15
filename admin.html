@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Quản trị Bài tập (Firebase Real)</title>
+    <style>
+        body { font-family: sans-serif; display: flex; height: 100vh; margin: 0; background: #f8fafc; overflow: hidden; }
+        
+        /* CỘT TRÁI: FORM NHẬP LIỆU */
+        .editor-panel { width: 40%; padding: 20px; border-right: 1px solid #ddd; display: flex; flex-direction: column; background: white; }
+        h2 { margin-top: 0; color: #1e293b; }
+        
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 0.9rem; }
+        input, textarea, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+        textarea { height: 80px; resize: vertical; font-family: monospace; }
+        
+        /* Options inputs */
+        .opt-row { display: flex; align-items: center; gap: 5px; margin-bottom: 5px; }
+        .opt-row input[type="radio"] { width: 20px; cursor: pointer; }
+        
+        /* Buttons */
+        .btn-action { width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.2s; }
+        .btn-save { background: #2563eb; color: white; }
+        .btn-save:hover { background: #1d4ed8; }
+        .btn-cancel { background: #64748b; color: white; display: none; margin-top: 5px; } 
+
+        /* CỘT PHẢI: DANH SÁCH */
+        .list-panel { flex: 1; padding: 20px; overflow-y: auto; background: #f1f5f9; }
+        .q-card { background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); position: relative; border-left: 4px solid #2563eb; }
+        
+        .q-card h4 { margin: 0 0 10px 0; font-size: 1rem; color: #334155; }
+        .q-tag { font-size: 0.75rem; background: #e0f2fe; color: #0284c7; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+        
+        .card-actions { margin-top: 10px; display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid #eee; padding-top: 10px; }
+        .btn-mini { padding: 5px 12px; border-radius: 4px; border: none; cursor: pointer; font-size: 0.85rem; }
+        .btn-edit { background: #fbbf24; color: #78350f; }
+        .btn-del { background: #fee2e2; color: #991b1b; }
+        
+        .editing { border-color: #fbbf24; background: #fffbeb; }
+    </style>
+</head>
+<body>
+
+<div class="editor-panel">
+    <h2 id="form-title">📝 Tạo bài tập mới</h2>
+    
+    <div class="form-group">
+        <label>Tag / Chủ đề:</label>
+        <input type="text" id="inp-tag" placeholder="Ví dụ: Unit 1, Grammar...">
+    </div>
+
+    <div class="form-group">
+        <label>Câu hỏi:</label>
+        <textarea id="inp-question" placeholder="Nhập nội dung câu hỏi..."></textarea>
+    </div>
+
+    <div class="form-group">
+        <label>Đáp án (Chọn radio bên cạnh đáp án đúng):</label>
+        <div id="options-container">
+            <div class="opt-row"><input type="radio" name="correct" value="0" checked><input type="text" id="opt-0" placeholder="Đáp án A"></div>
+            <div class="opt-row"><input type="radio" name="correct" value="1"><input type="text" id="opt-1" placeholder="Đáp án B"></div>
+            <div class="opt-row"><input type="radio" name="correct" value="2"><input type="text" id="opt-2" placeholder="Đáp án C"></div>
+            <div class="opt-row"><input type="radio" name="correct" value="3"><input type="text" id="opt-3" placeholder="Đáp án D"></div>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label>Giải thích (Tuỳ chọn):</label>
+        <textarea id="inp-explain" placeholder="Giải thích vì sao đúng..." style="height: 50px;"></textarea>
+    </div>
+
+    <input type="hidden" id="edit-id" value="">
+
+    <button class="btn-action btn-save" onclick="saveData()" id="btn-submit">💾 Lưu bài tập</button>
+    <button class="btn-action btn-cancel" onclick="resetForm()" id="btn-cancel">Huỷ sửa</button>
+</div>
+
+<div class="list-panel">
+    <h3>Danh sách câu hỏi trên Server (<span id="count">0</span>)</h3>
+    <div id="list-container">Đang kết nối Firebase...</div>
+</div>
+
+<script type="module">
+    // Import các hàm cần thiết từ Firebase SDK v12.8.0
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-analytics.js";
+    // QUAN TRỌNG: Thêm Firestore để lưu dữ liệu
+    import { getFirestore, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, orderBy, query } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+
+    // Cấu hình Firebase của bạn
+    const firebaseConfig = {
+        apiKey: "AIzaSyDnQI6YmFYn10BYO1N_QckXfa9qodZaVK8",
+        authDomain: "english-quiz-app-cca0c.firebaseapp.com",
+        projectId: "english-quiz-app-cca0c",
+        storageBucket: "english-quiz-app-cca0c.firebasestorage.app",
+        messagingSenderId: "17129090734",
+        appId: "1:17129090734:web:1103e4ad4a655d4566c73f",
+        measurementId: "G-MXH5BKKTZ4"
+    };
+
+    // Khởi tạo Firebase
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app); // Giữ lại Analytics theo mã của bạn
+    const db = getFirestore(app);      // Khởi tạo Database
+    const qCol = collection(db, "questions");
+
+    // --- LOGIC ỨNG DỤNG (GIỮ NGUYÊN NHƯ CŨ) ---
+
+    // 1. LẮNG NGHE DỮ LIỆU THỰC
+    onSnapshot(query(qCol, orderBy("createdAt", "desc")), (snapshot) => {
+        const listDiv = document.getElementById('list-container');
+        document.getElementById('count').innerText = snapshot.size;
+        listDiv.innerHTML = "";
+
+        snapshot.forEach(docSnap => {
+            const data = docSnap.data();
+            const id = docSnap.id;
+            
+            const div = document.createElement('div');
+            div.className = `q-card ${id === getCurrentEditId() ? 'editing' : ''}`;
+            div.innerHTML = `
+                <span class="q-tag">${data.tag}</span>
+                <h4>${data.question}</h4>
+                <div style="font-size: 0.9rem; color: #64748b;">
+                    Đúng: <b>${data.options[data.correctIndex]}</b>
+                </div>
+                <div class="card-actions">
+                    <button class="btn-mini btn-edit" id="btn-edit-${id}">✏️ Sửa</button>
+                    <button class="btn-mini btn-del" id="btn-del-${id}">🗑 Xoá</button>
+                </div>
+            `;
+            listDiv.appendChild(div);
+
+            document.getElementById(`btn-del-${id}`).onclick = () => deleteQuestion(id);
+            document.getElementById(`btn-edit-${id}`).onclick = () => loadToForm(id, data);
+        });
+    });
+
+    // Các hàm xử lý dữ liệu (Gán vào window để HTML gọi được)
+    window.saveData = async function() {
+        const btn = document.getElementById('btn-submit');
+        const question = document.getElementById('inp-question').value.trim();
+        const tag = document.getElementById('inp-tag').value.trim() || "General";
+        const explain = document.getElementById('inp-explain').value.trim();
+        const editId = document.getElementById('edit-id').value;
+
+        const options = [];
+        for(let i=0; i<4; i++) options.push(document.getElementById(`opt-${i}`).value.trim());
+        const correctIndex = parseInt(document.querySelector('input[name="correct"]:checked').value);
+
+        if(!question || options.some(o => !o)) return alert("Vui lòng nhập đầy đủ câu hỏi và 4 đáp án!");
+
+        btn.disabled = true;
+        btn.innerText = "Đang xử lý...";
+
+        try {
+            const dataPayload = {
+                question, options, correctIndex, explanation: explain, tag,
+                createdAt: Date.now()
+            };
+
+            if (editId) {
+                await updateDoc(doc(db, "questions", editId), dataPayload);
+                alert("✅ Đã cập nhật thành công!");
+                resetForm();
+            } else {
+                await addDoc(qCol, dataPayload);
+                clearInputsOnly();
+            }
+
+        } catch (e) {
+            alert("Lỗi: " + e.message);
+            console.error(e);
+        } finally {
+            btn.disabled = false;
+            btn.innerText = editId ? "Lưu thay đổi" : "💾 Lưu bài tập";
+        }
+    }
+
+    window.deleteQuestion = async function(id) {
+        if(!confirm("Bạn chắc chắn muốn xoá câu này?")) return;
+        try {
+            await deleteDoc(doc(db, "questions", id));
+        } catch (e) {
+            alert("Lỗi xoá: " + e.message);
+        }
+    }
+
+    window.loadToForm = function(id, data) {
+        document.getElementById('edit-id').value = id;
+        document.getElementById('form-title').innerText = "✏️ Đang sửa bài tập";
+        document.getElementById('btn-submit').innerText = "Lưu thay đổi";
+        document.getElementById('btn-submit').style.background = "#fbbf24";
+        document.getElementById('btn-submit').style.color = "#78350f";
+        document.getElementById('btn-cancel').style.display = "block";
+
+        document.getElementById('inp-tag').value = data.tag;
+        document.getElementById('inp-question').value = data.question;
+        document.getElementById('inp-explain').value = data.explanation || "";
+        for(let i=0; i<4; i++) document.getElementById(`opt-${i}`).value = data.options[i];
+        document.getElementsByName('correct')[data.correctIndex].checked = true;
+    }
+
+    window.resetForm = function() {
+        document.getElementById('edit-id').value = "";
+        document.getElementById('form-title').innerText = "📝 Tạo bài tập mới";
+        document.getElementById('btn-submit').innerText = "💾 Lưu bài tập";
+        document.getElementById('btn-submit').style.background = "#2563eb";
+        document.getElementById('btn-submit').style.color = "white";
+        document.getElementById('btn-cancel').style.display = "none";
+        clearInputsOnly();
+    }
+
+    function clearInputsOnly() {
+        document.getElementById('inp-question').value = "";
+        document.getElementById('inp-explain').value = "";
+        for(let i=0; i<4; i++) document.getElementById(`opt-${i}`).value = "";
+        document.getElementById('opt-0').focus();
+    }
+
+    function getCurrentEditId() {
+        return document.getElementById('edit-id').value;
+    }
+</script>
+
+</body>
+</html>
