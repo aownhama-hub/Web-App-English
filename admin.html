@@ -2,93 +2,136 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Quản trị Bài tập (Firebase Real)</title>
+    <title>Admin V2 - Smart Editor</title>
     <style>
-        body { font-family: sans-serif; display: flex; height: 100vh; margin: 0; background: #f8fafc; overflow: hidden; }
+        body { font-family: 'Segoe UI', sans-serif; height: 100vh; margin: 0; display: flex; background: #f1f5f9; overflow: hidden; }
         
-        /* CỘT TRÁI: FORM NHẬP LIỆU */
-        .editor-panel { width: 40%; padding: 20px; border-right: 1px solid #ddd; display: flex; flex-direction: column; background: white; }
-        h2 { margin-top: 0; color: #1e293b; }
+        /* SIDEBAR HƯỚNG DẪN */
+        .sidebar { width: 280px; background: #1e293b; color: white; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; font-size: 0.9rem; }
+        .sidebar h2 { color: #60a5fa; margin-top: 0; }
+        .syntax-box { background: #334155; padding: 10px; border-radius: 6px; font-family: monospace; font-size: 0.8rem; border: 1px solid #475569; color: #e2e8f0; }
+        .syntax-title { font-weight: bold; color: #fbbf24; margin-bottom: 5px; display: block; }
         
-        .form-group { margin-bottom: 15px; }
-        label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 0.9rem; }
-        input, textarea, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
-        textarea { height: 80px; resize: vertical; font-family: monospace; }
+        /* KHUNG CHÍNH */
+        .main { flex: 1; display: flex; flex-direction: column; padding: 15px; gap: 15px; }
         
-        /* Options inputs */
-        .opt-row { display: flex; align-items: center; gap: 5px; margin-bottom: 5px; }
-        .opt-row input[type="radio"] { width: 20px; cursor: pointer; }
+        /* TRÌNH SOẠN THẢO */
+        .editor-area { flex: 1; display: flex; gap: 15px; min-height: 0; }
+        .input-col { flex: 1; display: flex; flex-direction: column; }
+        .preview-col { flex: 1; background: white; border-radius: 8px; padding: 15px; overflow-y: auto; border: 1px solid #cbd5e1; }
         
-        /* Buttons */
-        .btn-action { width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.2s; }
+        textarea { flex: 1; padding: 15px; border-radius: 8px; border: 1px solid #cbd5e1; font-family: 'Consolas', monospace; resize: none; line-height: 1.5; font-size: 14px; }
+        
+        /* THANH CÔNG CỤ */
+        .toolbar { display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        button { padding: 10px 20px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
         .btn-save { background: #2563eb; color: white; }
         .btn-save:hover { background: #1d4ed8; }
-        .btn-cancel { background: #64748b; color: white; display: none; margin-top: 5px; } 
+        .btn-save:disabled { background: #94a3b8; cursor: not-allowed; }
 
-        /* CỘT PHẢI: DANH SÁCH */
-        .list-panel { flex: 1; padding: 20px; overflow-y: auto; background: #f1f5f9; }
-        .q-card { background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); position: relative; border-left: 4px solid #2563eb; }
+        /* PREVIEW CARDS */
+        .card { background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px; border-radius: 6px; margin-bottom: 10px; position: relative; border-left: 4px solid #94a3b8; }
+        .card.type-multi { border-left-color: #3b82f6; } /* Xanh dương */
+        .card.type-image { border-left-color: #ec4899; } /* Hồng */
+        .card.type-listening { border-left-color: #8b5cf6; } /* Tím */
+        .card.type-matching { border-left-color: #f59e0b; } /* Cam */
         
-        .q-card h4 { margin: 0 0 10px 0; font-size: 1rem; color: #334155; }
-        .q-tag { font-size: 0.75rem; background: #e0f2fe; color: #0284c7; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+        .card h4 { margin: 0 0 5px 0; font-size: 0.95rem; color: #334155; }
+        .badge { display: inline-block; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; color: white; margin-right: 5px; vertical-align: middle; }
+        .tags { margin-bottom: 5px; }
+        .tag-pill { background: #e2e8f0; color: #475569; font-size: 0.7rem; padding: 1px 6px; border-radius: 10px; margin-right: 3px; }
         
-        .card-actions { margin-top: 10px; display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid #eee; padding-top: 10px; }
-        .btn-mini { padding: 5px 12px; border-radius: 4px; border: none; cursor: pointer; font-size: 0.85rem; }
-        .btn-edit { background: #fbbf24; color: #78350f; }
-        .btn-del { background: #fee2e2; color: #991b1b; }
-        
-        .editing { border-color: #fbbf24; background: #fffbeb; }
+        .card ul { padding-left: 20px; margin: 5px 0; font-size: 0.9rem; }
+        .correct { color: #166534; font-weight: bold; }
+        .media-link { display: block; font-size: 0.8rem; color: #0284c7; text-decoration: none; margin-bottom: 5px; }
+
+        /* SERVER LIST (DANH SÁCH BÊN DƯỚI) */
+        .server-list { height: 200px; background: white; padding: 15px; border-radius: 8px; border: 1px solid #cbd5e1; overflow-y: auto; }
+        .list-item { display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid #eee; font-size: 0.9rem; }
+        .list-item:hover { background: #f1f5f9; }
+        .btn-mini { padding: 4px 10px; font-size: 0.75rem; margin-left: 5px; }
+        .editing-mode { border: 2px solid #f59e0b; background: #fffbeb; }
     </style>
 </head>
 <body>
 
-<div class="editor-panel">
-    <h2 id="form-title">📝 Tạo bài tập mới</h2>
+<div class="sidebar">
+    <h2>🛠 Cú pháp nhập</h2>
     
-    <div class="form-group">
-        <label>Tag / Chủ đề:</label>
-        <input type="text" id="inp-tag" placeholder="Ví dụ: Unit 1, Grammar...">
+    <div class="syntax-box">
+        <span class="syntax-title">1. Gán Tag chung:</span>
+        [TAGS: Unit 1, Grammar]<br>
+        (Áp dụng cho các câu bên dưới)
     </div>
 
-    <div class="form-group">
-        <label>Câu hỏi:</label>
-        <textarea id="inp-question" placeholder="Nhập nội dung câu hỏi..."></textarea>
+    <div class="syntax-box">
+        <span class="syntax-title">2. Trắc nghiệm (Mặc định):</span>
+        Câu hỏi là gì?
+        Đáp án A
+        *Đáp án đúng
+        Đáp án C
     </div>
 
-    <div class="form-group">
-        <label>Đáp án (Chọn radio bên cạnh đáp án đúng):</label>
-        <div id="options-container">
-            <div class="opt-row"><input type="radio" name="correct" value="0" checked><input type="text" id="opt-0" placeholder="Đáp án A"></div>
-            <div class="opt-row"><input type="radio" name="correct" value="1"><input type="text" id="opt-1" placeholder="Đáp án B"></div>
-            <div class="opt-row"><input type="radio" name="correct" value="2"><input type="text" id="opt-2" placeholder="Đáp án C"></div>
-            <div class="opt-row"><input type="radio" name="correct" value="3"><input type="text" id="opt-3" placeholder="Đáp án D"></div>
+    <div class="syntax-box">
+        <span class="syntax-title">3. Hình ảnh / Nghe:</span>
+        [TYPE: IMAGE] (hoặc LISTENING)<br>
+        [IMG: link_anh.jpg]<br>
+        Câu hỏi?<br>
+        *Đúng<br>
+        Sai
+    </div>
+
+    <div class="syntax-box">
+        <span class="syntax-title">4. Nối từ:</span>
+        [TYPE: MATCHING]<br>
+        Nối từ sau:<br>
+        Hello -> Xin chào<br>
+        Cat -> Con mèo
+    </div>
+    
+    <div style="margin-top:auto; font-size:0.8rem; color:#94a3b8">
+        V2.0 - Firebase Integrated
+    </div>
+</div>
+
+<div class="main">
+    <!-- Toolbar -->
+    <div class="toolbar">
+        <div>
+            <strong>Trạng thái: </strong> 
+            <span id="status">Sẵn sàng</span>
+        </div>
+        <div>
+            <input type="hidden" id="edit-id"> <!-- Lưu ID nếu đang sửa -->
+            <button class="btn-save" id="btn-submit" onclick="pushToFirebase()">☁️ Đẩy lên Firebase</button>
+            <button style="background:#64748b; color:white; display:none" id="btn-cancel" onclick="cancelEdit()">Huỷ sửa</button>
         </div>
     </div>
 
-    <div class="form-group">
-        <label>Giải thích (Tuỳ chọn):</label>
-        <textarea id="inp-explain" placeholder="Giải thích vì sao đúng..." style="height: 50px;"></textarea>
+    <!-- Editor -->
+    <div class="editor-area">
+        <div class="input-col">
+            <textarea id="input" placeholder="Nhập bài tập tại đây theo cú pháp..."></textarea>
+        </div>
+        <div class="preview-col" id="preview">
+            <div style="color:#94a3b8; text-align:center; margin-top:50px">Xem trước sẽ hiện ở đây</div>
+        </div>
     </div>
 
-    <input type="hidden" id="edit-id" value="">
-
-    <button class="btn-action btn-save" onclick="saveData()" id="btn-submit">💾 Lưu bài tập</button>
-    <button class="btn-action btn-cancel" onclick="resetForm()" id="btn-cancel">Huỷ sửa</button>
+    <!-- Server List -->
+    <div class="server-list">
+        <strong>📚 Bài tập hiện có trên Server (<span id="total-count">0</span>)</strong>
+        <div id="db-list">Loading...</div>
+    </div>
 </div>
 
-<div class="list-panel">
-    <h3>Danh sách câu hỏi trên Server (<span id="count">0</span>)</h3>
-    <div id="list-container">Đang kết nối Firebase...</div>
-</div>
-
+<!-- FIREBASE SDK V12.8.0 -->
 <script type="module">
-    // Import các hàm cần thiết từ Firebase SDK v12.8.0
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
-    import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-analytics.js";
-    // QUAN TRỌNG: Thêm Firestore để lưu dữ liệu
-    import { getFirestore, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, orderBy, query } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, orderBy, query, getDoc } 
+    from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
-    // Cấu hình Firebase của bạn
+    // --- CONFIG FIREBASE CỦA BẠN ---
     const firebaseConfig = {
         apiKey: "AIzaSyDnQI6YmFYn10BYO1N_QckXfa9qodZaVK8",
         authDomain: "english-quiz-app-cca0c.firebaseapp.com",
@@ -99,129 +142,290 @@
         measurementId: "G-MXH5BKKTZ4"
     };
 
-    // Khởi tạo Firebase
     const app = initializeApp(firebaseConfig);
-    const analytics = getAnalytics(app); // Giữ lại Analytics theo mã của bạn
-    const db = getFirestore(app);      // Khởi tạo Database
+    const db = getFirestore(app);
     const qCol = collection(db, "questions");
 
-    // --- LOGIC ỨNG DỤNG (GIỮ NGUYÊN NHƯ CŨ) ---
+    // BIẾN TOÀN CỤC
+    let parsedObjects = []; // Chứa dữ liệu sau khi dịch
 
-    // 1. LẮNG NGHE DỮ LIỆU THỰC
+    // 1. LẮNG NGHE DỮ LIỆU TỪ SERVER (REALTIME)
     onSnapshot(query(qCol, orderBy("createdAt", "desc")), (snapshot) => {
-        const listDiv = document.getElementById('list-container');
-        document.getElementById('count').innerText = snapshot.size;
-        listDiv.innerHTML = "";
+        const listEl = document.getElementById('db-list');
+        document.getElementById('total-count').innerText = snapshot.size;
+        listEl.innerHTML = '';
 
         snapshot.forEach(docSnap => {
             const data = docSnap.data();
             const id = docSnap.id;
+            const typeLabel = getTypeLabel(data.type);
             
             const div = document.createElement('div');
-            div.className = `q-card ${id === getCurrentEditId() ? 'editing' : ''}`;
+            div.className = 'list-item';
+            div.id = `row-${id}`;
             div.innerHTML = `
-                <span class="q-tag">${data.tag}</span>
-                <h4>${data.question}</h4>
-                <div style="font-size: 0.9rem; color: #64748b;">
-                    Đúng: <b>${data.options[data.correctIndex]}</b>
+                <div style="flex:1">
+                    <span style="font-weight:bold; color:${typeLabel.color}">[${typeLabel.text}]</span> 
+                    ${data.question.substring(0, 60)}...
+                    <br>
+                    <small style="color:#64748b">Tags: ${data.tags ? data.tags.join(', ') : 'None'}</small>
                 </div>
-                <div class="card-actions">
-                    <button class="btn-mini btn-edit" id="btn-edit-${id}">✏️ Sửa</button>
-                    <button class="btn-mini btn-del" id="btn-del-${id}">🗑 Xoá</button>
+                <div>
+                    <button class="btn-mini" style="background:#fbbf24; border:1px solid #d97706" id="edit-${id}">Sửa</button>
+                    <button class="btn-mini" style="background:#fee2e2; border:1px solid #ef4444; color:#b91c1c" id="del-${id}">Xoá</button>
                 </div>
             `;
-            listDiv.appendChild(div);
+            listEl.appendChild(div);
 
-            document.getElementById(`btn-del-${id}`).onclick = () => deleteQuestion(id);
-            document.getElementById(`btn-edit-${id}`).onclick = () => loadToForm(id, data);
+            document.getElementById(`del-${id}`).onclick = () => deleteItem(id);
+            document.getElementById(`edit-${id}`).onclick = () => loadForEdit(id, data);
         });
     });
 
-    // Các hàm xử lý dữ liệu (Gán vào window để HTML gọi được)
-    window.saveData = async function() {
-        const btn = document.getElementById('btn-submit');
-        const question = document.getElementById('inp-question').value.trim();
-        const tag = document.getElementById('inp-tag').value.trim() || "General";
-        const explain = document.getElementById('inp-explain').value.trim();
-        const editId = document.getElementById('edit-id').value;
+    // 2. BỘ DỊCH (PARSER): TEXT -> JSON
+    document.getElementById('input').addEventListener('input', parseText);
 
-        const options = [];
-        for(let i=0; i<4; i++) options.push(document.getElementById(`opt-${i}`).value.trim());
-        const correctIndex = parseInt(document.querySelector('input[name="correct"]:checked').value);
+    function parseText() {
+        const raw = document.getElementById('input').value;
+        const blocks = raw.split(/\n\s*\n/).filter(b => b.trim());
+        const previewEl = document.getElementById('preview');
+        
+        parsedObjects = [];
+        previewEl.innerHTML = '';
+        
+        let currentTags = []; // Lưu tag dùng chung
 
-        if(!question || options.some(o => !o)) return alert("Vui lòng nhập đầy đủ câu hỏi và 4 đáp án!");
+        blocks.forEach((block, idx) => {
+            const lines = block.split('\n').map(l => l.trim()).filter(l => l);
+            if(lines.length === 0) return;
 
-        btn.disabled = true;
-        btn.innerText = "Đang xử lý...";
-
-        try {
-            const dataPayload = {
-                question, options, correctIndex, explanation: explain, tag,
-                createdAt: Date.now()
-            };
-
-            if (editId) {
-                await updateDoc(doc(db, "questions", editId), dataPayload);
-                alert("✅ Đã cập nhật thành công!");
-                resetForm();
-            } else {
-                await addDoc(qCol, dataPayload);
-                clearInputsOnly();
+            // KIỂM TRA LỆNH GÁN TAG CHUNG: [TAGS: A, B]
+            if (lines[0].toUpperCase().startsWith('[TAGS:')) {
+                const tagStr = lines[0].substring(6, lines[0].length - 1); // Lấy nội dung trong []
+                currentTags = tagStr.split(',').map(t => t.trim());
+                return; // Đây là block cấu hình, không phải câu hỏi
             }
 
-        } catch (e) {
-            alert("Lỗi: " + e.message);
-            console.error(e);
-        } finally {
-            btn.disabled = false;
-            btn.innerText = editId ? "Lưu thay đổi" : "💾 Lưu bài tập";
+            // XỬ LÝ CÂU HỎI
+            let type = 'multi'; // Mặc định
+            let media = '';
+            let question = '';
+            let options = [];
+            let correct = -1;
+            let pairs = []; // Cho bài matching
+            let explain = '';
+
+            // Quét các dòng metadata [TYPE], [IMG], [AUDIO]
+            let contentLines = [];
+            lines.forEach(line => {
+                if (line.toUpperCase().startsWith('[TYPE:')) {
+                    const t = line.split(':')[1].trim().replace(']', '').toLowerCase();
+                    if (['image', 'listening', 'matching'].includes(t)) type = t;
+                } else if (line.toUpperCase().startsWith('[IMG:') || line.toUpperCase().startsWith('[AUDIO:')) {
+                    media = line.split(/:(.+)/)[1].trim().replace(']', ''); // Lấy sau dấu : đầu tiên
+                } else if (line.startsWith('>')) {
+                    explain = line.substring(1).trim();
+                } else {
+                    contentLines.push(line);
+                }
+            });
+
+            if(contentLines.length === 0) return;
+            question = contentLines[0]; // Dòng đầu tiên là câu hỏi
+
+            // Xử lý nội dung theo từng loại
+            if (type === 'matching') {
+                // Bài nối: Tìm dấu ->
+                for(let i=1; i<contentLines.length; i++) {
+                    const parts = contentLines[i].split('->');
+                    if(parts.length === 2) {
+                        pairs.push({ left: parts[0].trim(), right: parts[1].trim() });
+                    }
+                }
+            } else {
+                // Bài trắc nghiệm / ảnh / nghe
+                let optIdx = 0;
+                for(let i=1; i<contentLines.length; i++) {
+                    let txt = contentLines[i];
+                    if(txt.startsWith('*')) { correct = optIdx; txt = txt.substring(1).trim(); }
+                    options.push(txt);
+                    optIdx++;
+                }
+            }
+
+            // Đóng gói Object
+            const obj = { type, question, media, options, correctIndex: correct, matchPairs: pairs, explanation: explain, tags: currentTags };
+            parsedObjects.push(obj);
+
+            // RENDER PREVIEW
+            renderCard(obj, idx, previewEl);
+        });
+
+        // Update nút bấm
+        const btn = document.getElementById('btn-submit');
+        const isEdit = document.getElementById('edit-id').value !== "";
+        const isValid = parsedObjects.length > 0;
+        
+        btn.disabled = !isValid;
+        btn.innerText = isEdit ? "Lưu thay đổi" : `☁️ Đẩy ${parsedObjects.length} câu lên Server`;
+        
+        // Cảnh báo nếu đang sửa mà nhập nhiều block
+        if(isEdit && parsedObjects.length > 1) {
+            document.getElementById('status').innerText = "⚠️ Chế độ sửa chỉ hỗ trợ 1 câu hỏi!";
+            document.getElementById('status').style.color = "red";
+            btn.disabled = true;
+        } else {
+            document.getElementById('status').innerText = "Sẵn sàng";
+            document.getElementById('status').style.color = "black";
         }
     }
 
-    window.deleteQuestion = async function(id) {
-        if(!confirm("Bạn chắc chắn muốn xoá câu này?")) return;
+    function renderCard(data, idx, container) {
+        let contentHtml = '';
+        let badgeColor = '#3b82f6';
+        
+        if (data.type === 'matching') {
+            badgeColor = '#f59e0b';
+            contentHtml = data.matchPairs.map(p => `<li>${p.left} ➡️ ${p.right}</li>`).join('');
+        } else {
+            if(data.type === 'image') badgeColor = '#ec4899';
+            if(data.type === 'listening') badgeColor = '#8b5cf6';
+            
+            contentHtml = data.options.map((o, i) => 
+                `<li class="${i===data.correctIndex ? 'correct' : ''}">${i===data.correctIndex ? '✅ ' : ''}${o}</li>`
+            ).join('');
+        }
+
+        const tagsHtml = data.tags.map(t => `<span class="tag-pill">${t}</span>`).join('');
+        const mediaHtml = data.media ? `<a href="${data.media}" target="_blank" class="media-link">🔗 File đính kèm</a>` : '';
+
+        container.innerHTML += `
+            <div class="card type-${data.type}">
+                <div class="tags">${tagsHtml}</div>
+                <h4>
+                    <span class="badge" style="background:${badgeColor}">${data.type.toUpperCase()}</span>
+                    ${idx+1}. ${data.question}
+                </h4>
+                ${mediaHtml}
+                <ul>${contentHtml}</ul>
+            </div>
+        `;
+    }
+
+    // 3. CHỨC NĂNG: ĐẨY LÊN FIREBASE
+    window.pushToFirebase = async function() {
+        const btn = document.getElementById('btn-submit');
+        const editId = document.getElementById('edit-id').value;
+
+        if (!confirm("Xác nhận lưu dữ liệu?")) return;
+
+        btn.disabled = true;
+        btn.innerText = "⏳ Đang xử lý...";
+
+        try {
+            if (editId) {
+                // UPDATE (Chỉ sửa 1 câu)
+                if(parsedObjects.length !== 1) throw new Error("Khi sửa chỉ được để lại 1 câu hỏi trong khung.");
+                
+                const data = parsedObjects[0];
+                data.createdAt = Date.now(); // Update time
+                
+                await updateDoc(doc(db, "questions", editId), data);
+                alert("✅ Đã cập nhật xong!");
+                cancelEdit();
+            } else {
+                // CREATE (Tạo nhiều câu)
+                const promises = parsedObjects.map(data => {
+                    data.createdAt = Date.now();
+                    return addDoc(qCol, data);
+                });
+                await Promise.all(promises);
+                alert(`✅ Đã thêm ${parsedObjects.length} câu hỏi mới!`);
+                document.getElementById('input').value = "";
+                parseText(); // Clear preview
+            }
+        } catch (e) {
+            alert("Lỗi: " + e.message);
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    // 4. CHỨC NĂNG: XOÁ
+    window.deleteItem = async function(id) {
+        if(!confirm("Xoá câu hỏi này?")) return;
         try {
             await deleteDoc(doc(db, "questions", id));
-        } catch (e) {
+        } catch(e) {
             alert("Lỗi xoá: " + e.message);
         }
     }
 
-    window.loadToForm = function(id, data) {
+    // 5. CHỨC NĂNG: SỬA (DỊCH NGƯỢC JSON -> TEXT)
+    window.loadForEdit = function(id, data) {
+        // Highlight dòng đang sửa
+        document.querySelectorAll('.list-item').forEach(el => el.classList.remove('editing-mode'));
+        document.getElementById(`row-${id}`).classList.add('editing-mode');
+
         document.getElementById('edit-id').value = id;
-        document.getElementById('form-title').innerText = "✏️ Đang sửa bài tập";
-        document.getElementById('btn-submit').innerText = "Lưu thay đổi";
-        document.getElementById('btn-submit').style.background = "#fbbf24";
-        document.getElementById('btn-submit').style.color = "#78350f";
-        document.getElementById('btn-cancel').style.display = "block";
+        document.getElementById('btn-cancel').style.display = 'inline-block';
+        
+        // --- LOGIC REVERSE PARSER (QUAN TRỌNG) ---
+        let text = "";
+        
+        // 1. Tags
+        if(data.tags && data.tags.length > 0) {
+            text += `[TAGS: ${data.tags.join(', ')}]\n\n`;
+        }
 
-        document.getElementById('inp-tag').value = data.tag;
-        document.getElementById('inp-question').value = data.question;
-        document.getElementById('inp-explain').value = data.explanation || "";
-        for(let i=0; i<4; i++) document.getElementById(`opt-${i}`).value = data.options[i];
-        document.getElementsByName('correct')[data.correctIndex].checked = true;
+        // 2. Type & Media
+        if(data.type !== 'multi') text += `[TYPE: ${data.type.toUpperCase()}]\n`;
+        if(data.media) {
+            const tag = data.type === 'listening' ? 'AUDIO' : 'IMG';
+            text += `[${tag}: ${data.media}]\n`;
+        }
+
+        // 3. Question
+        text += `${data.question}\n`;
+
+        // 4. Options / Pairs
+        if(data.type === 'matching') {
+            data.matchPairs.forEach(p => {
+                text += `${p.left} -> ${p.right}\n`;
+            });
+        } else {
+            data.options.forEach((opt, idx) => {
+                const prefix = idx === data.correctIndex ? '*' : '';
+                text += `${prefix}${opt}\n`;
+            });
+        }
+
+        // 5. Explain
+        if(data.explanation) text += `> ${data.explanation}`;
+
+        // Đưa vào khung
+        document.getElementById('input').value = text;
+        parseText(); // Trigger lại preview
+        document.getElementById('input').focus();
     }
 
-    window.resetForm = function() {
+    window.cancelEdit = function() {
         document.getElementById('edit-id').value = "";
-        document.getElementById('form-title').innerText = "📝 Tạo bài tập mới";
-        document.getElementById('btn-submit').innerText = "💾 Lưu bài tập";
-        document.getElementById('btn-submit').style.background = "#2563eb";
-        document.getElementById('btn-submit').style.color = "white";
-        document.getElementById('btn-cancel').style.display = "none";
-        clearInputsOnly();
+        document.getElementById('btn-cancel').style.display = 'none';
+        document.getElementById('input').value = "";
+        document.querySelectorAll('.list-item').forEach(el => el.classList.remove('editing-mode'));
+        parseText();
     }
 
-    function clearInputsOnly() {
-        document.getElementById('inp-question').value = "";
-        document.getElementById('inp-explain').value = "";
-        for(let i=0; i<4; i++) document.getElementById(`opt-${i}`).value = "";
-        document.getElementById('opt-0').focus();
+    function getTypeLabel(type) {
+        switch(type) {
+            case 'listening': return {text: 'Nghe', color: '#8b5cf6'};
+            case 'image': return {text: 'Hình', color: '#ec4899'};
+            case 'matching': return {text: 'Nối', color: '#f59e0b'};
+            default: return {text: 'Trắc nghiệm', color: '#3b82f6'};
+        }
     }
 
-    function getCurrentEditId() {
-        return document.getElementById('edit-id').value;
-    }
 </script>
 
 </body>
